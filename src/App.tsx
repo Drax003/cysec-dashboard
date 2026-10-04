@@ -17,8 +17,17 @@ const navTargets: Record<string, number> = {
 };
 
 function App() {
-  const [authenticated, setAuthenticated] = useState(false);
-  return authenticated ? <CyberPulseScene onLogout={() => setAuthenticated(false)} /> : <LoginScreen onLogin={() => setAuthenticated(true)} />;
+  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem('cyberpulse-auth') === 'true');
+  const login = () => {
+    sessionStorage.setItem('cyberpulse-auth', 'true');
+    setAuthenticated(true);
+  };
+  const logout = () => {
+    sessionStorage.removeItem('cyberpulse-auth');
+    setAuthenticated(false);
+  };
+
+  return authenticated ? <CyberPulseScene onLogout={logout} /> : <LoginScreen onLogin={login} />;
 }
 
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
@@ -63,13 +72,20 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           Login
           <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
         </button>
+        <button
+          className="mt-3 w-full border border-white/25 px-5 py-3 text-sm font-medium uppercase tracking-[0.2em] text-white hover:bg-white hover:text-[#1D3045]"
+          type="button"
+          onClick={onLogin}
+        >
+          Continue preview
+        </button>
       </form>
     </main>
   );
 }
 
 function CyberPulseScene({ onLogout }: { onLogout: () => void }) {
-  const { containerRef, videoRef, canvasRef, scrollProgress, canvasLive } = useVideoScrub(VIDEO_SRC);
+  const { containerRef, videoRef, scrollProgress } = useVideoScrub(VIDEO_SRC);
   const { news, cves, jobs, projects, lastUpdated, loading, errors, refresh } = useLiveData();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -103,8 +119,20 @@ function CyberPulseScene({ onLogout }: { onLogout: () => void }) {
   return (
     <main ref={containerRef} className="relative h-[500vh]">
       <section className="sticky top-0 h-screen w-full overflow-hidden">
-        <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" src={VIDEO_SRC} muted playsInline preload="auto" />
-        <canvas ref={canvasRef} width={1920} height={1080} className={canvasLive ? 'absolute inset-0 h-full w-full object-cover opacity-100 transition-opacity duration-300' : 'absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300'} />
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-cover transition-[filter,transform] duration-100"
+          src={VIDEO_SRC}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          style={{
+            transform: `scale(${1.03 + scrollProgress * 0.07}) translate3d(${(scrollProgress - 0.5) * -2.5}%, ${scrollProgress * -1.5}%, 0)`,
+            filter: `brightness(${1 - Math.max(0, scrollProgress - 0.58) * 0.75}) saturate(${1 + scrollProgress * 0.12})`,
+          }}
+        />
 
         <div className="pointer-events-none absolute inset-0">
           <Navbar color={color} inverseColor={inverseColor} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onLogout={onLogout} onNavigate={scrollToProgress} />
@@ -136,12 +164,12 @@ function Navbar({ color, inverseColor, menuOpen, setMenuOpen, onLogout, onNaviga
         ))}
       </div>
       <div className="nav-enter ml-auto flex items-center gap-6" style={{ animationDelay: '500ms' }}>
-        <div className="hidden items-center gap-3 sm:flex">
+        <button className="hidden items-center gap-3 sm:flex" onClick={() => onNavigate(0.38)}>
           <span className="text-xs font-medium uppercase tracking-[0.2em]">ALERTS</span>
           <span className="flex h-5 w-5 items-center justify-center rounded-full transition-colors duration-500" style={{ backgroundColor: color, color: inverseColor }}>
             <Info size={10} />
           </span>
-        </div>
+        </button>
         <button className="hidden text-xs font-medium uppercase tracking-[0.2em] lg:inline" onClick={onLogout}>
           LOGOUT
         </button>
@@ -175,8 +203,8 @@ function MobileMenu({ open, close, onNavigate }: { open: boolean; close: () => v
           ))}
         </div>
         <div className="flex justify-between px-8 pb-10 text-xs font-medium uppercase tracking-[0.2em] text-white/60 sm:px-12">
-          <span>ALERTS</span>
-          <span>SETTINGS</span>
+          <button onClick={() => navigate(0.38)} className="hover:text-white">ALERTS</button>
+          <button onClick={() => navigate(0.82)} className="hover:text-white">SETTINGS</button>
         </div>
       </div>
     </div>
@@ -186,7 +214,7 @@ function MobileMenu({ open, close, onNavigate }: { open: boolean; close: () => v
 function SectionOne({ opacity, onNext, lastUpdated, loading, errors, refresh }: { opacity: number; onNext: () => void; lastUpdated: Date | null; loading: boolean; errors: string[]; refresh: () => Promise<unknown> }) {
   const show = opacity > 0.3;
   return (
-    <section className="absolute inset-0 px-6 transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32" style={{ opacity }}>
+    <section className={show ? 'pointer-events-auto absolute inset-0 px-6 transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32' : 'pointer-events-none absolute inset-0 px-6 transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32'} style={{ opacity }}>
       <div className="flex h-full max-w-5xl flex-col justify-center">
         <Stagger show={show} delay={0}>
           <p className="mb-6 text-sm font-medium uppercase tracking-[0.3em] text-[#1D304590]">CyberPulse</p>
@@ -200,6 +228,9 @@ function SectionOne({ opacity, onNext, lastUpdated, loading, errors, refresh }: 
         <Stagger show={show} delay={240}>
           <p className="mt-8 max-w-xl text-xs uppercase leading-6 tracking-[0.22em] text-[#1D304570]">
             {loading ? 'Refreshing live feeds...' : `Live public feeds / Updated ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'on load'}`}
+          </p>
+          <p className="mt-2 max-w-xl text-xs uppercase leading-6 tracking-[0.18em] text-[#1D304560]">
+            Motion engine: stable scroll animation
           </p>
           {errors.length > 0 && <p className="mt-2 max-w-xl text-xs uppercase leading-6 tracking-[0.18em] text-[#1D304590]">{errors.join(' / ')}</p>}
           <button onClick={() => void refresh()} className="pointer-events-auto mt-5 border border-[#1D304580] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#1D3045] hover:bg-[#1D3045] hover:text-white">
@@ -223,7 +254,7 @@ function SectionTwo({ opacity, query, setQuery, onNext, onPrevious, news, cves, 
   const visibleCves = cves.filter((cve) => !normalizedQuery || `${cve.id} ${cve.product} ${cve.status} ${cve.description}`.toLowerCase().includes(normalizedQuery));
 
   return (
-    <section className="absolute inset-0 px-6 text-[#1D3045] transition-opacity duration-100 ease-out sm:px-8 md:px-12" style={{ opacity }}>
+    <section className={show ? 'pointer-events-auto absolute inset-0 px-6 text-[#1D3045] transition-opacity duration-100 ease-out sm:px-8 md:px-12' : 'pointer-events-none absolute inset-0 px-6 text-[#1D3045] transition-opacity duration-100 ease-out sm:px-8 md:px-12'} style={{ opacity }}>
       <div className="flex h-full items-center justify-center">
         <div className="w-full max-w-6xl">
           <Stagger show={show} delay={0}>
@@ -285,7 +316,7 @@ function SectionTwo({ opacity, query, setQuery, onNext, onPrevious, news, cves, 
 function SectionThree({ opacity, onNavigate, jobs, projects, onSelect }: { opacity: number; onNavigate: (progress: number) => void; jobs: LiveJob[]; projects: LiveProject[]; onSelect: (item: DetailItem) => void }) {
   const show = opacity > 0.3;
   return (
-    <section className="absolute inset-0 flex items-center justify-end px-6 text-white transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32" style={{ opacity }}>
+    <section className={show ? 'pointer-events-auto absolute inset-0 flex items-center justify-end px-6 text-white transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32' : 'pointer-events-none absolute inset-0 flex items-center justify-end px-6 text-white transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32'} style={{ opacity }}>
       <div className="w-full max-w-4xl text-left">
         <Stagger show={show} delay={0}>
           <p className="mb-4 text-lg tracking-wide text-white/60">Jobs | Projects | Settings</p>
