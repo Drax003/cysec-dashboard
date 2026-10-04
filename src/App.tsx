@@ -87,6 +87,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 function CyberPulseScene({ onLogout }: { onLogout: () => void }) {
   const { containerRef, videoRef, scrollProgress } = useVideoScrub(VIDEO_SRC);
   const { news, cves, jobs, projects, lastUpdated, loading, errors, refresh } = useLiveData();
+  const sourceStatus = loading || !lastUpdated ? 'Checking...' : `${3 - errors.length}/3 online`;
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<DetailItem | null>(null);
@@ -138,7 +139,7 @@ function CyberPulseScene({ onLogout }: { onLogout: () => void }) {
           <Navbar color={color} inverseColor={inverseColor} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onLogout={onLogout} onNavigate={scrollToProgress} />
           <SectionOne opacity={sectionOpacity.s1} onNext={() => scrollToProgress(0.38)} lastUpdated={lastUpdated} loading={loading} errors={errors} refresh={refresh} />
           <SectionTwo opacity={sectionOpacity.s2} query={query} setQuery={setQuery} onNext={() => scrollToProgress(0.76)} onPrevious={() => scrollToProgress(0)} news={news} cves={cves} onSelect={setDetail} />
-          <SectionThree opacity={sectionOpacity.s3} onNavigate={scrollToProgress} jobs={jobs} projects={projects} onSelect={setDetail} />
+          <SectionThree opacity={sectionOpacity.s3} onNavigate={scrollToProgress} jobs={jobs} projects={projects} sourceStatus={sourceStatus} onSelect={setDetail} />
         </div>
       </section>
       <MobileMenu open={menuOpen} close={() => setMenuOpen(false)} onNavigate={scrollToProgress} />
@@ -322,7 +323,7 @@ function SectionTwo({ opacity, query, setQuery, onNext, onPrevious, news, cves, 
   );
 }
 
-function SectionThree({ opacity, onNavigate, jobs, projects, onSelect }: { opacity: number; onNavigate: (progress: number) => void; jobs: LiveJob[]; projects: LiveProject[]; onSelect: (item: DetailItem) => void }) {
+function SectionThree({ opacity, onNavigate, jobs, projects, sourceStatus, onSelect }: { opacity: number; onNavigate: (progress: number) => void; jobs: LiveJob[]; projects: LiveProject[]; sourceStatus: string; onSelect: (item: DetailItem) => void }) {
   const show = opacity > 0.3;
   return (
     <section aria-hidden={!show} ref={(element) => { element?.toggleAttribute('inert', !show); }} className={show ? 'pointer-events-auto absolute inset-0 flex items-center justify-end px-6 text-white sm:px-8 md:px-20 lg:px-32' : 'pointer-events-none absolute inset-0 flex items-center justify-end px-6 text-white sm:px-8 md:px-20 lg:px-32'} style={{ opacity }}>
@@ -355,7 +356,7 @@ function SectionThree({ opacity, onNavigate, jobs, projects, onSelect }: { opaci
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <StatusCard icon={<Bell size={17} />} label="Digest" value="08:00 local" />
             <StatusCard icon={<Settings size={17} />} label="Refresh" value="News 2h / CVEs 4h" />
-            <StatusCard icon={<CheckCircle2 size={17} />} label="Sources" value="Healthy" />
+            <StatusCard icon={<CheckCircle2 size={17} />} label="Sources" value={sourceStatus} />
           </div>
         </Stagger>
       </div>
