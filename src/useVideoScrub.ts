@@ -43,19 +43,23 @@ export function useVideoScrub(_videoSrc: string) {
       });
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') startVideo();
+    };
+
     startVideo();
     update();
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
     window.addEventListener('orientationchange', schedule);
-    document.addEventListener('visibilitychange', startVideo);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       if (frame.current !== null) cancelAnimationFrame(frame.current);
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
       window.removeEventListener('orientationchange', schedule);
-      document.removeEventListener('visibilitychange', startVideo);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
