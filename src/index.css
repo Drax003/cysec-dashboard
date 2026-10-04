@@ -23,6 +23,18 @@ input {
   font: inherit;
 }
 
+button,
+a {
+  cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid #e1a636;
+  outline-offset: 3px;
+}
+
 @keyframes navEnter {
   from {
     opacity: 0;

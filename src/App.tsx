@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { ArrowDown, ArrowRight, Bell, BriefcaseBusiness, CheckCircle2, ChevronUp, Code2, Info, Newspaper, Radar, Search, Settings, ShieldAlert, Sparkles, Star, X } from 'lucide-react';
+import { ArrowDown, ArrowRight, Bell, BriefcaseBusiness, CheckCircle2, ChevronUp, Code2, Info, Menu, Newspaper, Radar, Search, Settings, ShieldAlert, Sparkles, Star, X } from 'lucide-react';
 import { useVideoScrub } from '@/useVideoScrub';
 import { useLiveData, type DetailItem, type LiveCve, type LiveJob, type LiveNews, type LiveProject } from '@/liveData';
 
@@ -121,7 +121,7 @@ function CyberPulseScene({ onLogout }: { onLogout: () => void }) {
       <section className="sticky top-0 h-screen w-full overflow-hidden">
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover transition-[filter,transform] duration-100"
+          className="absolute inset-0 h-full w-full object-cover"
           src={VIDEO_SRC}
           autoPlay
           loop
@@ -150,10 +150,8 @@ function CyberPulseScene({ onLogout }: { onLogout: () => void }) {
 function Navbar({ color, inverseColor, menuOpen, setMenuOpen, onLogout, onNavigate }: { color: string; inverseColor: string; menuOpen: boolean; setMenuOpen: (open: boolean) => void; onLogout: () => void; onNavigate: (progress: number) => void }) {
   return (
     <nav className="pointer-events-auto absolute left-0 right-0 top-0 z-50 flex items-center justify-between px-6 pb-6 pt-8 transition-colors duration-500 sm:px-8 sm:pt-12 md:px-12" style={{ color }}>
-      <button className="flex flex-col gap-[5px] lg:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu">
-        <span className="h-[2px] w-6 transition-colors duration-500" style={{ backgroundColor: color }} />
-        <span className="h-[2px] w-6 transition-colors duration-500" style={{ backgroundColor: color }} />
-        <span className="h-[2px] w-4 transition-colors duration-500" style={{ backgroundColor: color }} />
+      <button className="flex h-11 w-11 items-center justify-center lg:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu" aria-expanded={menuOpen}>
+        <Menu size={22} />
       </button>
       <div className="hidden items-center gap-8 lg:flex xl:gap-10">
         {navLinks.map((link, index) => (
@@ -172,9 +170,6 @@ function Navbar({ color, inverseColor, menuOpen, setMenuOpen, onLogout, onNaviga
         </button>
         <button className="hidden text-xs font-medium uppercase tracking-[0.2em] lg:inline" onClick={onLogout}>
           LOGOUT
-        </button>
-        <button className="text-xs font-medium uppercase tracking-[0.2em] lg:hidden" onClick={() => setMenuOpen(true)}>
-          MENU
         </button>
       </div>
     </nav>
@@ -214,7 +209,7 @@ function MobileMenu({ open, close, onNavigate }: { open: boolean; close: () => v
 function SectionOne({ opacity, onNext, lastUpdated, loading, errors, refresh }: { opacity: number; onNext: () => void; lastUpdated: Date | null; loading: boolean; errors: string[]; refresh: () => Promise<unknown> }) {
   const show = opacity > 0.3;
   return (
-    <section className={show ? 'pointer-events-auto absolute inset-0 px-6 transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32' : 'pointer-events-none absolute inset-0 px-6 transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32'} style={{ opacity }}>
+    <section aria-hidden={!show} ref={(element) => { element?.toggleAttribute('inert', !show); }} className={show ? 'pointer-events-auto absolute inset-0 px-6 sm:px-8 md:px-20 lg:px-32' : 'pointer-events-none absolute inset-0 px-6 sm:px-8 md:px-20 lg:px-32'} style={{ opacity }}>
       <div className="flex h-full max-w-5xl flex-col justify-center">
         <Stagger show={show} delay={0}>
           <p className="mb-6 text-sm font-medium uppercase tracking-[0.3em] text-[#1D304590]">CyberPulse</p>
@@ -233,13 +228,13 @@ function SectionOne({ opacity, onNext, lastUpdated, loading, errors, refresh }: 
             Motion engine: stable scroll animation
           </p>
           {errors.length > 0 && <p className="mt-2 max-w-xl text-xs uppercase leading-6 tracking-[0.18em] text-[#1D304590]">{errors.join(' / ')}</p>}
-          <button onClick={() => void refresh()} className="pointer-events-auto mt-5 border border-[#1D304580] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#1D3045] hover:bg-[#1D3045] hover:text-white">
+          <button onClick={() => void refresh()} className="mt-5 border border-[#1D304580] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#1D3045] hover:bg-[#1D3045] hover:text-white">
             Refresh now
           </button>
         </Stagger>
       </div>
       <Stagger show={show} delay={300}>
-        <button onClick={onNext} className="pointer-events-auto absolute bottom-12 right-6 flex h-12 w-12 items-center justify-center rounded-full border border-[#1D304580] text-[#1D3045] hover:opacity-70 sm:right-8 md:right-12" aria-label="Next">
+        <button onClick={onNext} className="absolute bottom-12 right-6 flex h-12 w-12 items-center justify-center rounded-full border border-[#1D304580] text-[#1D3045] hover:opacity-70 sm:right-8 md:right-12" aria-label="Next">
           <ArrowRight size={18} />
         </button>
       </Stagger>
@@ -248,66 +243,80 @@ function SectionOne({ opacity, onNext, lastUpdated, loading, errors, refresh }: 
 }
 
 function SectionTwo({ opacity, query, setQuery, onNext, onPrevious, news, cves, onSelect }: { opacity: number; query: string; setQuery: (query: string) => void; onNext: () => void; onPrevious: () => void; news: LiveNews[]; cves: LiveCve[]; onSelect: (item: DetailItem) => void }) {
+  const [activePanel, setActivePanel] = useState<'threats' | 'cves'>('threats');
   const show = opacity > 0.3;
   const normalizedQuery = query.trim().toLowerCase();
   const visibleNews = news.filter((item) => !normalizedQuery || `${item.title} ${item.source} ${item.tag} ${item.description}`.toLowerCase().includes(normalizedQuery));
   const visibleCves = cves.filter((cve) => !normalizedQuery || `${cve.id} ${cve.product} ${cve.status} ${cve.description}`.toLowerCase().includes(normalizedQuery));
+  const threatRows = visibleNews.slice(0, 5).map((item) => (
+    <DataRow key={item.title} title={item.title} meta={`${item.source} / ${item.tag} / ${item.time}`} onClick={() => onSelect(item)} />
+  ));
+  const cveRows = visibleCves.slice(0, 5).map((cve) => (
+    <DataRow key={cve.id} title={`${cve.id} / ${cve.score.toFixed(1)}`} meta={`${cve.product} / ${cve.status}`} onClick={() => onSelect(cve)} />
+  ));
+  const threatPanel = (count: number) => (
+    <DashboardPanel title="Threat Feed" icon={<Newspaper size={18} />} onAction={() => visibleNews[0] ? onSelect(visibleNews[0]) : onNext()}>
+      {threatRows.slice(0, count)}
+      {visibleNews.length === 0 && <EmptyRow text="No threat stories match this search" />}
+    </DashboardPanel>
+  );
+  const cvePanel = (count: number) => (
+    <DashboardPanel title="CVE Watchlist" icon={<ShieldAlert size={18} />} onAction={() => visibleCves[0] ? onSelect(visibleCves[0]) : onNext()}>
+      {cveRows.slice(0, count)}
+      {visibleCves.length === 0 && <EmptyRow text="No CVEs match this search" />}
+    </DashboardPanel>
+  );
 
   return (
-    <section className={show ? 'pointer-events-auto absolute inset-0 px-6 text-[#1D3045] transition-opacity duration-100 ease-out sm:px-8 md:px-12' : 'pointer-events-none absolute inset-0 px-6 text-[#1D3045] transition-opacity duration-100 ease-out sm:px-8 md:px-12'} style={{ opacity }}>
-      <div className="flex h-full items-center justify-center">
+    <section aria-hidden={!show} ref={(element) => { element?.toggleAttribute('inert', !show); }} className={show ? 'pointer-events-auto absolute inset-0 px-6 text-[#1D3045] sm:px-8 md:px-12' : 'pointer-events-none absolute inset-0 px-6 text-[#1D3045] sm:px-8 md:px-12'} style={{ opacity }}>
+      <div className="flex h-full items-center justify-center pt-20 pb-24 sm:py-24 lg:pb-16 lg:pt-28">
         <div className="w-full max-w-6xl">
           <Stagger show={show} delay={0}>
             <div className="mx-auto max-w-[900px] text-center">
-              <h2 className="font-extralight uppercase leading-[1.3] tracking-wide" style={{ fontSize: 'clamp(1.5rem,4.5vw,4.5rem)' }}>
+              <h2 className="font-extralight uppercase leading-[1.3] tracking-wide" style={{ fontSize: 'clamp(1.5rem,3.5vw,3.5rem)' }}>
                 Track urgent threats <span className="text-[#1D3045]/80">and exploitable CVEs</span> <span className="text-[#1D3045]/50">before they become noise</span>
               </h2>
             </div>
           </Stagger>
           <Stagger show={show} delay={180}>
-            <label className="pointer-events-auto mx-auto mt-8 flex max-w-xl items-center gap-3 border border-[#1D304540] bg-white/25 px-4 py-3 backdrop-blur-sm">
+            <label className="mx-auto mt-8 flex max-w-xl items-center gap-3 border border-[#1D304540] bg-white/25 px-4 py-3 backdrop-blur-sm">
               <Search size={18} />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent text-sm uppercase tracking-[0.12em] outline-none placeholder:text-[#1D304580]" placeholder="Search live module preview" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent text-sm uppercase tracking-[0.12em] outline-none placeholder:text-[#1D304580]" placeholder="Search threats and CVEs" />
             </label>
           </Stagger>
-          <div className="mt-8 grid gap-4 lg:grid-cols-2">
+          <div className="mt-8 hidden gap-4 lg:grid lg:grid-cols-2">
             <Stagger show={show} delay={260}>
-              <DashboardPanel title="Threat Feed" icon={<Newspaper size={18} />} onAction={() => visibleNews[0] ? onSelect(visibleNews[0]) : onNext()}>
-                {visibleNews.slice(0, 5).map((item) => (
-                  <DataRow key={item.title} title={item.title} meta={`${item.source} / ${item.tag} / ${item.time}`} onClick={() => onSelect(item)} />
-                ))}
-                {visibleNews.length === 0 && <EmptyRow text="No threat stories match this search" />}
-              </DashboardPanel>
+              {threatPanel(4)}
             </Stagger>
             <Stagger show={show} delay={360}>
-              <DashboardPanel title="CVE Watchlist" icon={<ShieldAlert size={18} />} onAction={() => visibleCves[0] ? onSelect(visibleCves[0]) : onNext()}>
-                {visibleCves.slice(0, 5).map((cve) => (
-                  <DataRow key={cve.id} title={`${cve.id} / ${cve.score.toFixed(1)}`} meta={`${cve.product} / ${cve.status}`} onClick={() => onSelect(cve)} />
-                ))}
-                {visibleCves.length === 0 && <EmptyRow text="No CVEs match this search" />}
-              </DashboardPanel>
+              {cvePanel(4)}
             </Stagger>
+          </div>
+          <div className="mt-5 lg:hidden">
+            <div className="mb-3 grid grid-cols-2 border border-[#1D304540] bg-white/20 p-1" role="group" aria-label="Choose dashboard panel">
+              <button type="button" aria-pressed={activePanel === 'threats'} onClick={() => setActivePanel('threats')} className={activePanel === 'threats' ? 'bg-[#1D3045] px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white' : 'px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-[#1D3045]/70'}>
+                Threats
+              </button>
+              <button type="button" aria-pressed={activePanel === 'cves'} onClick={() => setActivePanel('cves')} className={activePanel === 'cves' ? 'bg-[#1D3045] px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white' : 'px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-[#1D3045]/70'}>
+                CVEs
+              </button>
+            </div>
+            {activePanel === 'threats' ? threatPanel(2) : cvePanel(2)}
           </div>
         </div>
       </div>
-      <div className="absolute bottom-16 right-6 flex flex-col items-center gap-4 sm:right-8 md:right-12">
-        <Stagger show={show} delay={430}>
-          <button onClick={onNext} className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-[#1D304566]" aria-label="Next section">
-            <ArrowDown size={18} />
-          </button>
-        </Stagger>
-        <Stagger show={show} delay={500}>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#1D3045]/40" />
-            <span className="h-2 w-2 rounded-full bg-[#1D3045]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#1D3045]/40" />
-          </div>
-        </Stagger>
-        <Stagger show={show} delay={570}>
-          <button onClick={onPrevious} className="pointer-events-auto mt-2 flex h-10 w-10 items-center justify-center rounded-full border border-[#1D30454d] text-[#1D3045]/80" aria-label="Previous section">
-            <ChevronUp size={16} />
-          </button>
-        </Stagger>
+      <div className="absolute bottom-5 right-6 flex items-center gap-3 sm:bottom-8 sm:right-8 md:right-12">
+        <button onClick={onPrevious} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#1D30454d] text-[#1D3045]/80 transition-colors hover:bg-[#1D3045] hover:text-white" aria-label="Previous section">
+          <ChevronUp size={16} />
+        </button>
+        <div className="flex items-center gap-2" aria-label="Section 2 of 3">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#1D3045]/40" />
+          <span className="h-2 w-2 rounded-full bg-[#1D3045]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-[#1D3045]/40" />
+        </div>
+        <button onClick={onNext} className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1D304566] transition-colors hover:bg-[#1D3045] hover:text-white" aria-label="Next section">
+          <ArrowDown size={18} />
+        </button>
       </div>
     </section>
   );
@@ -316,7 +325,7 @@ function SectionTwo({ opacity, query, setQuery, onNext, onPrevious, news, cves, 
 function SectionThree({ opacity, onNavigate, jobs, projects, onSelect }: { opacity: number; onNavigate: (progress: number) => void; jobs: LiveJob[]; projects: LiveProject[]; onSelect: (item: DetailItem) => void }) {
   const show = opacity > 0.3;
   return (
-    <section className={show ? 'pointer-events-auto absolute inset-0 flex items-center justify-end px-6 text-white transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32' : 'pointer-events-none absolute inset-0 flex items-center justify-end px-6 text-white transition-opacity duration-100 ease-out sm:px-8 md:px-20 lg:px-32'} style={{ opacity }}>
+    <section aria-hidden={!show} ref={(element) => { element?.toggleAttribute('inert', !show); }} className={show ? 'pointer-events-auto absolute inset-0 flex items-center justify-end px-6 text-white sm:px-8 md:px-20 lg:px-32' : 'pointer-events-none absolute inset-0 flex items-center justify-end px-6 text-white sm:px-8 md:px-20 lg:px-32'} style={{ opacity }}>
       <div className="w-full max-w-4xl text-left">
         <Stagger show={show} delay={0}>
           <p className="mb-4 text-lg tracking-wide text-white/60">Jobs | Projects | Settings</p>
@@ -362,7 +371,7 @@ function DashboardPanel({ title, icon, children, light = false, onAction }: { ti
           {icon}
           <h3 className="text-xs font-medium uppercase tracking-[0.2em]">{title}</h3>
         </div>
-        <button onClick={onAction} className="pointer-events-auto rounded-full p-1 hover:opacity-70" aria-label={`Open ${title}`}>
+        <button onClick={onAction} className="rounded-full p-1 hover:opacity-70" aria-label={`Open ${title}`}>
           <ArrowRight size={16} />
         </button>
       </div>
@@ -373,7 +382,7 @@ function DashboardPanel({ title, icon, children, light = false, onAction }: { ti
 
 function DataRow({ title, meta, light = false, onClick }: { title: string; meta: string; light?: boolean; onClick?: () => void }) {
   return (
-    <button onClick={onClick} className={light ? 'pointer-events-auto block w-full border-t border-white/15 pt-3 text-left hover:opacity-75' : 'pointer-events-auto block w-full border-t border-[#1D304526] pt-3 text-left hover:opacity-75'}>
+    <button onClick={onClick} className={light ? 'block w-full border-t border-white/15 pt-3 text-left hover:opacity-75' : 'block w-full border-t border-[#1D304526] pt-3 text-left hover:opacity-75'}>
       <div className="flex items-start gap-3">
         <Star size={14} className="mt-0.5 shrink-0" />
         <div>
